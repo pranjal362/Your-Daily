@@ -23,6 +23,11 @@ export const minor = (theme: Theme) => {
 				display: 'flex',
 				alignItems: 'stretch',
 			},
+			styleOverrides: {
+				item: {
+					flexDirection: 'column',
+				},
+			},
 		},
 	}
 	return config
