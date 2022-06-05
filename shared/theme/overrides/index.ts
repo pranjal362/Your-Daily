@@ -1,8 +1,8 @@
 import { Components, Theme } from '@mui/material'
-import { Button } from './Button'
+import { minor } from './minor'
 export const overrides = (theme: Theme) => {
 	const overrides: Components = {
-		...Button(theme),
+		...minor(theme),
 	}
 	return overrides
 }

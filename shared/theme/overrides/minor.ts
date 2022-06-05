@@ -1,7 +1,7 @@
 import { Components, Theme } from '@mui/material'
 import { pxToRem } from '../../utils'
 
-export const Button = (theme: Theme) => {
+export const minor = (theme: Theme) => {
 	const config: Components = {
 		MuiButton: {
 			defaultProps: {
@@ -11,6 +11,17 @@ export const Button = (theme: Theme) => {
 				sizeSmall: {
 					fontSize: pxToRem(14),
 				},
+			},
+		},
+		MuiPaper: {
+			defaultProps: {
+				variant: 'outlined',
+			},
+		},
+		MuiGrid: {
+			defaultProps: {
+				display: 'flex',
+				alignItems: 'stretch',
 			},
 		},
 	}
