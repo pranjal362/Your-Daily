@@ -48,8 +48,8 @@ export const palette = (mode: PaletteMode) => {
 			white: '#FFFFFF',
 		},
 		background: {
-			paper: '#FFFFFF',
-			default: '#F3F2EF',
+			paper: mode === 'light' ? '#FFFFFF' : '#4F5A6A',
+			default: mode === 'light' ? '#F3F2EF' : '#171923',
 		},
 		grey: {
 			A100: '#F4F4F3',
