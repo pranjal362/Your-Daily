@@ -1,6 +1,7 @@
 import type { NextPage } from 'next'
 import Image from 'next/image'
-import React, { useState } from 'react'
+import React, { ChangeEvent, FormEvent, useContext, MouseEvent } from 'react'
+import snackbarContext from '../shared/provider/snackbarProvider'
 import {
 	TextField,
 	Grid,
@@ -16,17 +17,42 @@ import {
 import Visibility from '@mui/icons-material/Visibility'
 import VisibilityOff from '@mui/icons-material/VisibilityOff'
 import AccountCircle from '@mui/icons-material/AccountCircle'
+import axios from 'axios'
+
+interface State {
+	username: string
+	password: string
+	showPassword: boolean
+}
 
 const Home: NextPage = () => {
-	const [state, setState] = useState({
+	const { customizedSnackbar } = useContext(snackbarContext)
+
+	const [state, setState] = React.useState<State>({
 		username: '',
 		password: '',
-		authflag: 1,
 		showPassword: false,
 	})
 
-	function handleSubmit(event: any) {
-		event.preventDefault()
+	const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
+		setState({ ...state, [event?.target.name ?? '']: event?.target.value })
+	}
+
+	async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+		try {
+			event?.preventDefault()
+			const { status, data } = await axios.post('/api/sm-login', {
+				email: state.username,
+				password: state.password,
+			})
+			if (status == 200) {
+				customizedSnackbar('Successfully Logged In!!', 'success')
+			}
+			console.log(data.Authorization)
+		} catch (error: any) {
+			customizedSnackbar('Invalid UserName or Password!!', 'error')
+		} finally {
+		}
 	}
 
 	const handleClickShowPassword = () => {
@@ -37,9 +63,9 @@ const Home: NextPage = () => {
 	}
 
 	const handleMouseDownPassword = (
-		event: React.MouseEvent<HTMLButtonElement>
+		event: MouseEvent<HTMLButtonElement> | undefined
 	) => {
-		event.preventDefault()
+		event?.preventDefault()
 	}
 
 	return (
@@ -62,8 +88,6 @@ const Home: NextPage = () => {
 					</Grid>
 					<Grid item>
 						<Paper
-							variant='elevation'
-							elevation={2}
 							className='login-background'
 							sx={{ marginTop: '60px', marginLeft: '80px' }}>
 							<Grid container direction='column' spacing={2} p={1}>
@@ -106,7 +130,7 @@ const Home: NextPage = () => {
 											</Grid>
 											<Grid item>
 												<TextField
-													type='password'
+													type={state.showPassword ? 'text' : 'password'}
 													label='Password'
 													placeholder='Enter your password'
 													fullWidth
@@ -114,12 +138,7 @@ const Home: NextPage = () => {
 													color='grey'
 													variant='outlined'
 													value={state.password}
-													onChange={(event) =>
-														setState({
-															...state,
-															[event.target.name]: event.target.value,
-														})
-													}
+													onChange={handleChange}
 													InputProps={{
 														endAdornment: (
 															<InputAdornment position='end'>
@@ -167,49 +186,34 @@ const Home: NextPage = () => {
 
 export default Home
 
-const AllClass = styled(Box)`
-	:root {
-		/* Colors: */
-		--unnamed-color-ffeedb: #ffeedb;
-		--unnamed-color-1d1d1d: #1d1d1d;
-		--unnamed-color-4612f8: #4612f8;
-		--unnamed-color-777777: #777777;
-		--unnamed-color-f88a12: #f88a12;
-		--unnamed-color-707070: #707070;
-	}
-	.login-background {
-		padding: 20px;
-		padding-top: 50px;
-		padding-bottom: 25px;
-		box-shadow: 12px 9px 27px #77777740;
-	}
+const AllClass = styled(Box)(({ theme }) => ({
+	'.login-background': {
+		padding: 25,
+		boxShadow: '12px 9px 27px #77777740',
+	},
 
-	.login-sub-heading {
-		color: #1d2226;
-		opacity: 50%;
-		letter-spacing: 0px;
-		text-align: left;
-	}
+	'.login-sub-heading': {
+		color: '#1d2226',
+		opacity: '50%',
+		letterSpacing: '0px',
+		textAlign: 'left',
+	},
 
-	.button-block {
-		background: transparent
-			linear-gradient(180deg, var(--unnamed-color-f88a12) 0%, #cd2d05 100%) 0%
-			0% no-repeat padding-box;
-		background: transparent linear-gradient(180deg, #f88a12 0%, #cd2d05 100%) 0%
-			0% no-repeat padding-box;
-		border-radius: 5px;
-		opacity: 1;
-	}
+	'.button-block': {
+		background:
+			'transparent linear-gradient(180deg, #f88a12 0%, #cd2d05 100%) 0% 0% no-repeat padding-box',
+		borderRadius: '5px',
+		opacity: 1,
+	},
 
-	.Forget-Password {
-		color: var(--unnamed-color-f88a12);
-		text-align: left;
-		font: normal normal normal 14px/17px Museo Sans 500;
-		letter-spacing: 0px;
-		color: #f88a12;
-		opacity: 1;
-	}
-`
+	'.Forget-Password': {
+		color: '#f88a12',
+		textAlign: 'left',
+		font: 'normal normal normal 14px/17px Museo Sans 500',
+		letterSpacing: '0px',
+		opacity: 1,
+	},
+}))
 
 const ImagesSide = styled(Box)(({ theme }) => ({
 	display: 'flex',
