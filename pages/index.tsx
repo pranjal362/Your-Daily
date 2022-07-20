@@ -1,4 +1,5 @@
-import type { NextPage } from 'next'
+import { NextPage } from 'next'
+import { useRouter } from 'next/router'
 import Image from 'next/image'
 import React, { ChangeEvent, FormEvent, useContext, MouseEvent } from 'react'
 import snackbarContext from '../shared/provider/snackbarProvider'
@@ -26,6 +27,7 @@ interface State {
 }
 
 const Home: NextPage = () => {
+	const router = useRouter()
 	const { customizedSnackbar } = useContext(snackbarContext)
 
 	const [state, setState] = React.useState<State>({
@@ -47,8 +49,10 @@ const Home: NextPage = () => {
 			})
 			if (status == 200) {
 				customizedSnackbar('Successfully Logged In!!', 'success')
+				router.push('/dashboard')
 			}
-			console.log(data.Authorization)
+			// console.log(data.Authorization)
+			localStorage.setItem('Auth', data.Authorization)
 		} catch (error: any) {
 			customizedSnackbar('Invalid UserName or Password!!', 'error')
 		} finally {
@@ -135,7 +139,6 @@ const Home: NextPage = () => {
 													placeholder='Enter your password'
 													fullWidth
 													name='password'
-													color='grey'
 													variant='outlined'
 													value={state.password}
 													onChange={handleChange}

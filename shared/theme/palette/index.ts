@@ -5,8 +5,8 @@ export const palette = (mode: PaletteMode) => {
 		mode: mode,
 		custom: {},
 		primary: {
-			main: '#C2FAE5',
-			contrastText: '#171923',
+			main: '#F88A12',
+			contrastText: '#FFFFFF',
 			light: '#CEFBEA',
 			dark: '#87AFA0',
 		},
@@ -39,7 +39,7 @@ export const palette = (mode: PaletteMode) => {
 			contrastText: '#FFFFFF',
 		},
 		text: {
-			primary: '#171923',
+			primary: '#4F5A6A',
 			secondary: '#4F5A6A',
 			disabled: '#F4F4F3',
 		},
