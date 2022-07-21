@@ -4,7 +4,7 @@ import Image from 'next/image'
 import React from 'react'
 import axios from 'axios'
 import { useRouter } from 'next/router'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useContext } from 'react'
 import {
 	Typography,
 	Box,
@@ -26,26 +26,176 @@ import {
 	DialogContent,
 	DialogContentText,
 	IconButton,
+	DialogTitle,
+	TextField,
 } from '@mui/material'
 import LogoutIcon from '@mui/icons-material/Logout'
 import DeleteIcon from '@mui/icons-material/Delete'
 import EditIcon from '@mui/icons-material/Edit'
 import PersonAddAltIcon from '@mui/icons-material/PersonAddAlt'
+import { Item } from 'modules/Items'
+import snackbarContext from '../shared/provider/snackbarProvider'
+import { stringify } from 'querystring'
+
+enum TabCategory {
+	ALL = 'all',
+	VEGETABLES = 'vegetables',
+	FRUITS = 'fruits',
+	OTHERS = 'others',
+}
+
+interface adItem {
+	categoryID: number
+	name: string
+	price: number
+	inStock: boolean
+	baseQuantity: string
+	imageId: number
+}
+
+interface editItem {
+	id: number
+	categoryID: number
+	name: string
+	price: number
+	inStock: boolean
+	baseQuantity: string
+	imageId: number
+}
 
 function Dashboard() {
 	// eslint-disable-next-line react-hooks/rules-of-hooks
-	const [value, setValue] = useState(0)
-	const [openDialog, setDialogOpen] = React.useState(false)
+	const [value, setValue] = useState<TabCategory>(TabCategory.ALL)
+	const [openLogoutDialog, setOpenAddItemDialogLogoutDialog] =
+		React.useState(false)
+	const { customizedSnackbar } = useContext(snackbarContext)
+	const [addItem, setAddItem] = useState<adItem>({
+		categoryID: 1,
+		name: 'random',
+		price: 2500,
+		inStock: true,
+		baseQuantity: '1 Unit',
+		imageId: 52,
+	})
+	const [editItem, setEditItem] = useState<editItem>({
+		id: 222,
+		categoryID: 2,
+		name: 'not random',
+		price: 2500,
+		inStock: false,
+		baseQuantity: '2 Unit',
+		imageId: 97,
+	})
 	// const [itemsData, setItemsData] = useState<Item[] | {}>([])
-	const [Dashboard, setDashboard] = useState({
-		all: [{}],
-		vegetables: [{}],
-		fruits: [{}],
-		others: [{}],
+	const [Dashboard, setDashboard] = useState<{
+		[key in TabCategory]: Item[]
+	}>({
+		[TabCategory.ALL]: [],
+		[TabCategory.VEGETABLES]: [],
+		[TabCategory.FRUITS]: [],
+		[TabCategory.OTHERS]: [],
 	})
 	// const [vegetables, setVegetables] = useState<Item[]>([])
 	// const [fruits, setFruits] = useState<Item[]>([])
 	// const [others, setOthers] = useState<Item[]>([])
+	const [openAddItemDialog, setOpenAddItemDialog] = React.useState(false)
+
+	const handleAddItemOpen = () => {
+		setOpenAddItemDialog(true)
+	}
+
+	const handleAddItemClose = () => {
+		setOpenAddItemDialog(false)
+	}
+
+	const handleAddItemSubmit = () => {
+		const Auth = localStorage.getItem('Auth') as string
+		try {
+			;(async () => {
+				const { status, data } = await axios.post(
+					`/api/store-manager/item`,
+					addItem,
+					{
+						headers: {
+							Authorization: Auth,
+						},
+					}
+				)
+				if (status == 201) {
+					customizedSnackbar('Item added successfully!!', 'success')
+					setOpenAddItemDialog(false)
+					window.location.reload()
+				}
+			})()
+		} catch (error) {
+			console.log(error)
+		}
+	}
+
+	const [openEditItemDialog, setOpenEditItemDialog] = React.useState(false)
+
+	const handleEditItemOpen = (event: any, itemId: number) => {
+		const Auth = localStorage.getItem('Auth') as string
+		try {
+			;(async () => {
+				const { status, data } = await axios.get(
+					`/api/store-manager/item/${itemId}`,
+					{
+						headers: {
+							Authorization: Auth,
+						},
+					}
+				)
+				if (status == 200) {
+					customizedSnackbar('Item details fetched Successfully!!', 'success')
+					setEditItem(data)
+					setOpenEditItemDialog(true)
+					// console.log(editItem)
+					// console.log(data)
+				}
+			})()
+		} catch (error) {
+			console.log(error)
+		}
+	}
+
+	const handleEditItemClose = () => {
+		setOpenEditItemDialog(false)
+	}
+
+	const handleEditItemSubmit = () => {
+		const Auth = localStorage.getItem('Auth') as string
+		try {
+			;(async () => {
+				const body = {
+					category: editItem.categoryID,
+					imageId: 0,
+					inStock: editItem.inStock,
+					name: editItem.name,
+					price: editItem.price,
+					strikeThroughPrice: 0,
+				}
+				const id = editItem.id
+				const { status, data } = await axios.put(
+					`/api/store-manager/item/${id}`,
+					body,
+					{
+						headers: {
+							Authorization: Auth,
+						},
+					}
+				)
+				if (status == 201) {
+					customizedSnackbar('Item Edited successfully!!', 'success')
+					setOpenEditItemDialog(false)
+					window.location.reload()
+				}
+			})()
+		} catch (error) {
+			console.log(error)
+		}
+	}
+
 	const router = useRouter()
 
 	useEffect(() => {
@@ -57,7 +207,7 @@ function Dashboard() {
 						Authorization: Auth,
 					},
 				})
-				const all = response.data
+				const all = response.data as Item[]
 
 				const vegetables = all.filter(
 					(item: { categoryID: number }) => item.categoryID === 1
@@ -72,62 +222,86 @@ function Dashboard() {
 						item.categoryID !== 1 && item.categoryID !== 2
 				)
 
-				setDashboard({ all, vegetables, fruits, others })
+				setDashboard({
+					[TabCategory.ALL]: all,
+					[TabCategory.VEGETABLES]: vegetables,
+					[TabCategory.FRUITS]: fruits,
+					[TabCategory.OTHERS]: others,
+				})
 			})()
 		} catch (error) {
 			console.log(error)
 		}
 	}, [])
 
-	useEffect(() => {
-		if (Dashboard.all.length > 1) console.log(Dashboard)
-	}, [Dashboard])
-
-	const handleDialogOpen = () => {
-		setDialogOpen(true)
+	const handleLogoutDialogOpen = () => {
+		setOpenAddItemDialogLogoutDialog(true)
 	}
 
-	const handleDialogDisagree = () => {
-		setDialogOpen(false)
+	const handleLogoutDialogDisagree = () => {
+		setOpenAddItemDialogLogoutDialog(false)
 	}
 
-	const handleDialogAgree = () => {
-		setDialogOpen(false)
+	const handleLogoutDialogAgree = () => {
+		setOpenAddItemDialogLogoutDialog(false)
 		router.push('/')
 	}
 
-	const handleChange = (event: React.SyntheticEvent, newValue: number) => {
+	const handleTabValueChange = (
+		event: React.SyntheticEvent,
+		newValue: TabCategory
+	) => {
 		setValue(newValue)
 	}
 
-	const handleDeleteItem = () => {}
+	const handleDeleteItem = (event: any, itemId: number) => {
+		const Auth = localStorage.getItem('Auth') as string
+		try {
+			;(async () => {
+				const { status, data } = await axios.delete(
+					`/api/store-manager/item/${itemId}`,
+					{
+						headers: {
+							Authorization: Auth,
+						},
+					}
+				)
+				if (status == 200) {
+					customizedSnackbar('Item successfully Deleted!!', 'success')
+					window.location.reload()
+				}
+			})()
+		} catch (error) {
+			console.log(error)
+		}
+	}
 
 	return (
 		<>
 			<AppBar position='sticky' sx={{ height: 80 }}>
 				<Toolbar>
 					<Image
-						src='/assets/img/yd-logo.png'
+						src='/assets/img/YD-logo.png'
 						alt='Your Daily Logo'
-						height={100}
-						width={250}
+						height={80}
+						width={80}
 					/>
-					<Typography variant='h1' sx={{ flexGrow: 1, marginLeft: 2 }}>
+					<Typography variant='h2' sx={{ flexGrow: 1, marginLeft: 2 }}>
 						Dashboard
 					</Typography>
 					<PersonAddAltIcon fontSize='large' sx={{ marginRight: 5 }} />
 					<LogoutIcon
 						fontSize='large'
 						sx={{ marginRight: 5 }}
-						onClick={handleDialogOpen}
+						onClick={handleLogoutDialogOpen}
 					/>
-					<Dialog open={openDialog} onClose={handleDialogDisagree}>
+					<Dialog open={openLogoutDialog} onClose={handleLogoutDialogDisagree}>
 						<DialogContent>
 							<DialogContentText>DO YOU WANT TO LOGOUT?</DialogContentText>
 						</DialogContent>
 						<DialogActions>
-							<Button onClick={handleDialogDisagree}>Disagree</Button>
-							<Button onClick={handleDialogAgree} autoFocus>
+							<Button onClick={handleLogoutDialogDisagree}>Disagree</Button>
+							<Button onClick={handleLogoutDialogAgree} autoFocus>
 								Agree
 							</Button>
 						</DialogActions>
@@ -137,7 +311,7 @@ function Dashboard() {
 
 			<Grid container justifyContent={'space-around'} padding={5}>
 				<Grid item>
-					<Button onClick={handleDialogOpen}>Back</Button>
+					<Button onClick={handleLogoutDialogOpen}>Back</Button>
 				</Grid>
 				<Grid item>
 					<Typography variant='h2' color='black'>
@@ -145,15 +319,141 @@ function Dashboard() {
 					</Typography>
 				</Grid>
 				<Grid item>
-					<Button>+ Add New Items</Button>
+					<Button onClick={handleAddItemOpen}>+ Add New Items</Button>
 				</Grid>
+				<Dialog open={openAddItemDialog} onClose={handleAddItemClose}>
+					<DialogTitle>Add Item Details</DialogTitle>
+					<DialogContent>
+						<DialogContentText>
+							All Details are mandatory to fill.
+						</DialogContentText>
+						<TextField
+							autoFocus
+							margin='dense'
+							id='category'
+							label='Category'
+							type='number'
+							fullWidth
+							variant='standard'
+							required
+							value={addItem.categoryID}
+							onChange={(event) =>
+								setAddItem({
+									...addItem,
+									[event.target.id]: parseInt(event.target.value),
+								})
+							}
+						/>
+						<TextField
+							autoFocus
+							margin='dense'
+							id='name'
+							label='Name'
+							type='text'
+							fullWidth
+							variant='standard'
+							required
+							value={addItem.name}
+							onChange={(event) =>
+								setAddItem({
+									...addItem,
+									[event.target.id]: event.target.value,
+								})
+							}
+						/>
+						<TextField
+							autoFocus
+							margin='dense'
+							id='price'
+							label='Price'
+							type='number'
+							fullWidth
+							variant='standard'
+							required
+							value={addItem.price}
+							onChange={(event) =>
+								setAddItem({
+									...addItem,
+									[event.target.id]: parseInt(event.target.value),
+								})
+							}
+						/>
+						<TextField
+							autoFocus
+							margin='dense'
+							id='inStock'
+							label='In Stock'
+							type='boolean'
+							fullWidth
+							variant='standard'
+							required
+							value={addItem.inStock}
+							onChange={(event) =>
+								setAddItem({
+									...addItem,
+									[event.target.id]: event.target.value,
+								})
+							}
+						/>
+						<TextField
+							autoFocus
+							margin='dense'
+							id='baseQuantity'
+							label='Base Quantity'
+							type='text'
+							fullWidth
+							variant='standard'
+							required
+							value={addItem.baseQuantity}
+							onChange={(event) =>
+								setAddItem({
+									...addItem,
+									[event.target.id]: event.target.value,
+								})
+							}
+						/>
+						<TextField
+							autoFocus
+							margin='dense'
+							id='imageId'
+							label='Image ID'
+							type='number'
+							fullWidth
+							variant='standard'
+							required
+							value={addItem.imageId}
+							onChange={(event) =>
+								setAddItem({
+									...addItem,
+									[event.target.id]: parseInt(event.target.value),
+								})
+							}
+						/>
+					</DialogContent>
+					<DialogActions>
+						<Button onClick={handleAddItemClose}>Cancel</Button>
+						<Button onClick={handleAddItemSubmit}>Submit</Button>
+					</DialogActions>
+				</Dialog>
 			</Grid>
 
-			<Tabs centered value={value} onChange={handleChange}>
-				<Tab label={`All items (${Dashboard.all.length})`} />
-				<Tab label={`Vegetables (${Dashboard.vegetables.length})`} />
-				<Tab label={`Fruits (${Dashboard.fruits.length})`} />
-				<Tab label={`Others (${Dashboard.others.length})`} />
+			<Tabs centered value={value} onChange={handleTabValueChange}>
+				<Tab
+					value={TabCategory.ALL}
+					label={`All items (${Dashboard[TabCategory.ALL].length})`}
+				/>
+				<Tab
+					value={TabCategory.VEGETABLES}
+					label={`Vegetables (${Dashboard[TabCategory.VEGETABLES].length})`}
+				/>
+				<Tab
+					value={TabCategory.FRUITS}
+					label={`Fruits (${Dashboard[TabCategory.FRUITS].length})`}
+				/>
+				<Tab
+					value={TabCategory.OTHERS}
+					label={`Others (${Dashboard[TabCategory.OTHERS].length})`}
+				/>
 			</Tabs>
 
 			<TableContainer sx={{ paddingLeft: 20, paddingRight: 20, paddingTop: 5 }}>
@@ -167,7 +467,7 @@ function Dashboard() {
 								<Typography color='black'>Image</Typography>
 							</TableCell>
 							<TableCell align='right'>
-								<Typography color='black'>vegetables Name</Typography>
+								<Typography color='black'>Vegetables Name</Typography>
 							</TableCell>
 							<TableCell align='right'>
 								<Typography color='black'>Base Qty.</Typography>
@@ -189,177 +489,149 @@ function Dashboard() {
 						</TableRow>
 					</TableHead>
 					<TableBody>
-						{value == 0 &&
-							Dashboard.all.map((row: any) => (
-								<TableRow
-									key={row.id}
-									sx={{
-										'&:last-child td, &:last-child th': { border: 0 },
-									}}>
-									<TableCell component='th' scope='row'>
-										<Typography color='gray'>{row.id}</Typography>
-									</TableCell>
-									<TableCell align='center'>
-										<img
-											src={row.itemImageLinks ?? ''}
-											alt='Item Image'
-											width={50}
-											height={50}
-										/>
-									</TableCell>
-									<TableCell align='center'>
-										<Typography color='gray'>{row.name}</Typography>
-									</TableCell>
-									<TableCell align='center'>
-										<Typography color='gray'>{row.baseQuantity}</Typography>
-									</TableCell>
-									<TableCell align='center'>
-										<Typography color='gray'>{row.price}</Typography>
-									</TableCell>
-									<TableCell align='center'>
-										<Checkbox color='primary' checked={row.inStock} />
-									</TableCell>
-									<TableCell align='center'>
-										<IconButton onClick={handleDeleteItem}>
-											<DeleteIcon color='primary' />
-										</IconButton>
-									</TableCell>
-									<TableCell align='center'>
-										<IconButton>
-											<EditIcon color='primary' />
-										</IconButton>
-									</TableCell>
-								</TableRow>
-							))}
-						{value == 1 &&
-							Dashboard.vegetables.map((row: any) => (
-								<TableRow
-									key={row.id}
-									sx={{
-										'&:last-child td, &:last-child th': { border: 0 },
-									}}>
-									<TableCell component='th' scope='row'>
-										<Typography color='gray'>{row.id}</Typography>
-									</TableCell>
-									<TableCell align='center'>
-										<img
-											src={row.itemImageLinks ?? ''}
-											alt='Item Image'
-											width={50}
-											height={50}
-										/>
-									</TableCell>
-									<TableCell align='center'>
-										<Typography color='gray'>{row.name}</Typography>
-									</TableCell>
-									<TableCell align='center'>
-										<Typography color='gray'>{row.baseQuantity}</Typography>
-									</TableCell>
-									<TableCell align='center'>
-										<Typography color='gray'>{row.price}</Typography>
-									</TableCell>
-									<TableCell align='center'>
-										<Checkbox color='primary' checked={row.inStock} />
-									</TableCell>
-									<TableCell align='center'>
-										<IconButton onClick={handleDeleteItem}>
-											<DeleteIcon color='primary' />
-										</IconButton>
-									</TableCell>
-									<TableCell align='center'>
-										<IconButton>
-											<EditIcon color='primary' />
-										</IconButton>
-									</TableCell>
-								</TableRow>
-							))}
-						{value == 2 &&
-							Dashboard.fruits.map((row: any) => (
-								<TableRow
-									key={row.id}
-									sx={{
-										'&:last-child td, &:last-child th': { border: 0 },
-									}}>
-									<TableCell component='th' scope='row'>
-										<Typography color='gray'>{row.id}</Typography>
-									</TableCell>
-									<TableCell align='center'>
-										<img
-											src={row.itemImageLinks ?? ''}
-											alt='Item Image'
-											width={50}
-											height={50}
-										/>
-									</TableCell>
-									<TableCell align='center'>
-										<Typography color='gray'>{row.name}</Typography>
-									</TableCell>
-									<TableCell align='center'>
-										<Typography color='gray'>{row.baseQuantity}</Typography>
-									</TableCell>
-									<TableCell align='center'>
-										<Typography color='gray'>{row.price}</Typography>
-									</TableCell>
-									<TableCell align='center'>
-										<Checkbox color='primary' checked={row.inStock} />
-									</TableCell>
-									<TableCell align='center'>
-										<IconButton onClick={handleDeleteItem}>
-											<DeleteIcon color='primary' />
-										</IconButton>
-									</TableCell>
-									<TableCell align='center'>
-										<IconButton>
-											<EditIcon color='primary' />
-										</IconButton>
-									</TableCell>
-								</TableRow>
-							))}
-						{value == 3 &&
-							Dashboard.fruits.map((row: any) => (
-								<TableRow
-									key={row.id}
-									sx={{
-										'&:last-child td, &:last-child th': { border: 0 },
-									}}>
-									<TableCell component='th' scope='row'>
-										<Typography color='gray'>{row.id}</Typography>
-									</TableCell>
-									<TableCell align='center'>
-										<img
-											src={row.itemImageLinks ?? ''}
-											alt='Item Image'
-											width={50}
-											height={50}
-										/>
-									</TableCell>
-									<TableCell align='center'>
-										<Typography color='gray'>{row.name}</Typography>
-									</TableCell>
-									<TableCell align='center'>
-										<Typography color='gray'>{row.baseQuantity}</Typography>
-									</TableCell>
-									<TableCell align='center'>
-										<Typography color='gray'>{row.price}</Typography>
-									</TableCell>
-									<TableCell align='center'>
-										<Checkbox color='primary' checked={row.inStock} />
-									</TableCell>
-									<TableCell align='center'>
-										<IconButton onClick={handleDeleteItem}>
-											<DeleteIcon color='primary' />
-										</IconButton>
-									</TableCell>
-									<TableCell align='center'>
-										<IconButton>
-											<EditIcon color='primary' />
-										</IconButton>
-									</TableCell>
-								</TableRow>
-							))}
+						{Dashboard[value]?.map((row: any) => (
+							<TableRow
+								key={row.id}
+								sx={{
+									'&:last-child td, &:last-child th': { border: 0 },
+								}}>
+								<TableCell component='th' scope='row'>
+									<Typography color='gray'>{row.id}</Typography>
+								</TableCell>
+								<TableCell align='center'>
+									<img
+										src={'/assets/img/butterfly.jpg'}
+										alt='Item Image'
+										width={50}
+										height={50}
+									/>
+								</TableCell>
+								<TableCell align='center'>
+									<Typography color='gray'>{row.name}</Typography>
+								</TableCell>
+								<TableCell align='center'>
+									<Typography color='gray'>{row.baseQuantity}</Typography>
+								</TableCell>
+								<TableCell align='center'>
+									<Typography color='gray'>{row.price}</Typography>
+								</TableCell>
+								<TableCell align='center'>
+									<Checkbox color='primary' checked={row.inStock} />
+								</TableCell>
+								<TableCell align='center'>
+									<IconButton
+										onClick={(event) => handleDeleteItem(event, row.id)}>
+										<DeleteIcon color='primary' />
+									</IconButton>
+								</TableCell>
+								<TableCell align='center'>
+									<IconButton
+										onClick={(event) => handleEditItemOpen(event, row.id)}>
+										<EditIcon color='primary' />
+									</IconButton>
+								</TableCell>
+							</TableRow>
+						))}
 					</TableBody>
 				</Table>
 			</TableContainer>
+
+			<Dialog open={openEditItemDialog} onClose={handleEditItemClose}>
+				<DialogTitle>Edit Item Details</DialogTitle>
+				<DialogContent>
+					<DialogContentText>Edit details.</DialogContentText>
+					<TextField
+						autoFocus
+						margin='dense'
+						id='category'
+						label='Category'
+						type='number'
+						fullWidth
+						variant='standard'
+						required
+						value={editItem.categoryID}
+						onChange={(event) => {
+							console.log(editItem)
+							setEditItem({
+								...editItem,
+								[event.target.id]: event.target.value,
+							})
+						}}
+					/>
+					<TextField
+						autoFocus
+						margin='dense'
+						id='name'
+						label='Name'
+						type='text'
+						fullWidth
+						variant='standard'
+						required
+						value={editItem.name}
+						onChange={(event) =>
+							setEditItem({
+								...editItem,
+								[event.target.id]: event.target.value,
+							})
+						}
+					/>
+					<TextField
+						autoFocus
+						margin='dense'
+						id='price'
+						label='Price'
+						type='number'
+						fullWidth
+						variant='standard'
+						required
+						value={editItem.price}
+						onChange={(event) =>
+							setEditItem({
+								...editItem,
+								[event.target.id]: event.target.value,
+							})
+						}
+					/>
+					<TextField
+						autoFocus
+						margin='dense'
+						id='inStock'
+						label='In Stock'
+						type='boolean'
+						fullWidth
+						variant='standard'
+						required
+						value={editItem.inStock}
+						onChange={(event) => {
+							setEditItem({
+								...editItem,
+								[event.target.id]: event.target.value,
+							})
+						}}
+					/>
+					<TextField
+						autoFocus
+						margin='dense'
+						id='baseQuantity'
+						label='Base Quantity'
+						type='text'
+						fullWidth
+						variant='standard'
+						required
+						value={editItem.baseQuantity}
+						onChange={(event) =>
+							setEditItem({
+								...editItem,
+								[event.target.id]: event.target.value,
+							})
+						}
+					/>
+				</DialogContent>
+				<DialogActions>
+					<Button onClick={handleEditItemClose}>Cancel</Button>
+					<Button onClick={handleEditItemSubmit}>Submit</Button>
+				</DialogActions>
+			</Dialog>
 		</>
 	)
 }
