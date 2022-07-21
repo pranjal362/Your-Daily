@@ -45,7 +45,7 @@ enum TabCategory {
 }
 
 interface adItem {
-	categoryID: number
+	category: number
 	name: string
 	price: number
 	inStock: boolean
@@ -70,9 +70,9 @@ function Dashboard() {
 		React.useState(false)
 	const { customizedSnackbar } = useContext(snackbarContext)
 	const [addItem, setAddItem] = useState<adItem>({
-		categoryID: 1,
+		category: 1,
 		name: 'random',
-		price: 2500,
+		price: 500,
 		inStock: true,
 		baseQuantity: '1 Unit',
 		imageId: 52,
@@ -336,7 +336,7 @@ function Dashboard() {
 							fullWidth
 							variant='standard'
 							required
-							value={addItem.categoryID}
+							value={addItem.category}
 							onChange={(event) =>
 								setAddItem({
 									...addItem,
