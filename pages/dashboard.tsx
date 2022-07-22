@@ -69,6 +69,7 @@ function Dashboard() {
 	const [openLogoutDialog, setOpenAddItemDialogLogoutDialog] =
 		React.useState(false)
 	const { customizedSnackbar } = useContext(snackbarContext)
+	const [del, setDel] = useState(true)
 	const [addItem, setAddItem] = useState<adItem>({
 		category: 1,
 		name: 'random',
@@ -124,7 +125,7 @@ function Dashboard() {
 				if (status == 201) {
 					customizedSnackbar('Item added successfully!!', 'success')
 					setOpenAddItemDialog(false)
-					window.location.reload()
+					// window.location.reload()
 				}
 			})()
 		} catch (error) {
@@ -174,6 +175,7 @@ function Dashboard() {
 					name: editItem.name,
 					price: editItem.price,
 					strikeThroughPrice: 0,
+					baseQuantity: '1 Unit',
 				}
 				const id = editItem.id
 				const { status, data } = await axios.put(
@@ -188,7 +190,40 @@ function Dashboard() {
 				if (status == 201) {
 					customizedSnackbar('Item Edited successfully!!', 'success')
 					setOpenEditItemDialog(false)
-					window.location.reload()
+					// window.location.reload()
+				}
+			})()
+		} catch (error) {
+			console.log(error)
+		}
+	}
+
+	const handleCheck = (row: any) => {
+		const Auth = localStorage.getItem('Auth') as string
+		try {
+			const body = {
+				category: row.categoryID,
+				imageId: 0,
+				inStock: !row.inStock,
+				name: row.name,
+				price: row.price,
+				strikeThroughPrice: 0,
+				baseQuantity: '1 Unit',
+			}
+			const id = row.id
+			;(async () => {
+				const { status, data } = await axios.put(
+					`/api/store-manager/item/${id}`,
+					body,
+					{
+						headers: {
+							Authorization: Auth,
+						},
+					}
+				)
+				if (status == 201) {
+					customizedSnackbar('Item Edited successfully!!', 'success')
+					// window.location.reload()
 				}
 			})()
 		} catch (error) {
@@ -232,7 +267,7 @@ function Dashboard() {
 		} catch (error) {
 			console.log(error)
 		}
-	}, [])
+	}, [, addItem, editItem, handleCheck, del])
 
 	const handleLogoutDialogOpen = () => {
 		setOpenAddItemDialogLogoutDialog(true)
@@ -256,6 +291,7 @@ function Dashboard() {
 
 	const handleDeleteItem = (event: any, itemId: number) => {
 		const Auth = localStorage.getItem('Auth') as string
+		setDel(false)
 		try {
 			;(async () => {
 				const { status, data } = await axios.delete(
@@ -268,7 +304,7 @@ function Dashboard() {
 				)
 				if (status == 200) {
 					customizedSnackbar('Item successfully Deleted!!', 'success')
-					window.location.reload()
+					// window.location.reload()
 				}
 			})()
 		} catch (error) {
@@ -378,20 +414,15 @@ function Dashboard() {
 								})
 							}
 						/>
-						<TextField
-							autoFocus
-							margin='dense'
+						<Typography>In Stock*</Typography>
+						<Checkbox
 							id='inStock'
-							label='In Stock'
-							type='boolean'
-							fullWidth
-							variant='standard'
 							required
-							value={addItem.inStock}
+							checked={addItem.inStock}
 							onChange={(event) =>
 								setAddItem({
 									...addItem,
-									[event.target.id]: event.target.value,
+									[event.target.id]: !addItem.inStock,
 								})
 							}
 						/>
@@ -516,7 +547,11 @@ function Dashboard() {
 									<Typography color='gray'>{row.price}</Typography>
 								</TableCell>
 								<TableCell align='center'>
-									<Checkbox color='primary' checked={row.inStock} />
+									<Checkbox
+										color='primary'
+										onClick={() => handleCheck(row)}
+										checked={row.inStock}
+									/>
 								</TableCell>
 								<TableCell align='center'>
 									<IconButton
@@ -592,20 +627,16 @@ function Dashboard() {
 							})
 						}
 					/>
-					<TextField
+					<Typography>In Stock*</Typography>
+					<Checkbox
 						autoFocus
-						margin='dense'
 						id='inStock'
-						label='In Stock'
-						type='boolean'
-						fullWidth
-						variant='standard'
 						required
-						value={editItem.inStock}
+						checked={editItem.inStock}
 						onChange={(event) => {
 							setEditItem({
 								...editItem,
-								[event.target.id]: event.target.value,
+								[event.target.id]: !editItem.inStock,
 							})
 						}}
 					/>
